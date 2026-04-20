@@ -1,410 +1,487 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Shield,
+  Globe,
+  Zap,
+  Activity,
+  Smartphone,
+  Settings as SettingsIcon,
+  Lock,
+  AlertTriangle,
+  ChevronRight,
+  RefreshCw,
+  Power,
+  Clock,
+  Cpu,
+  Database,
+  Copy,
+  CheckCircle2,
+  X
+} from 'lucide-react';
+import { mockApi } from '../services/mockApi';
+import { QRCodeSVG } from 'qrcode.react';
+import Settings from './Settings';
+import ServerList from './ServerList';
 
-const servers = [
-  { country: "Germany",     city: "Frankfurt",  code: "DE", flag: "🇩🇪", region: "Europe"      },
-  { country: "Netherlands", city: "Amsterdam",  code: "NL", flag: "🇳🇱", region: "Europe"      },
-  { country: "Finland",     city: "Helsinki",   code: "FI", flag: "🇫🇮", region: "Europe"      },
-  { country: "Switzerland", city: "Zürich",     code: "CH", flag: "🇨🇭", region: "Europe"      },
-  { country: "Singapore",   city: "Singapore",  code: "SG", flag: "🇸🇬", region: "Asia Pacific" },
-  { country: "Japan",       city: "Tokyo",      code: "JP", flag: "🇯🇵", region: "Asia Pacific" },
-];
+// --- Toast Component ---
+const Toast = ({ message, type = "success", onClose }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 50, scale: 0.9 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    exit={{ opacity: 0, scale: 0.9 }}
+    className={`fixed bottom-8 right-8 z-[100] flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border ${type === "success" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-blue-500/10 border-blue-500/20 text-blue-400"
+      }`}
+  >
+    <CheckCircle2 size={18} />
+    <span className="text-sm font-bold">{message}</span>
+    <button onClick={onClose} className="ml-2 hover:opacity-70 transition-opacity">
+      <X size={14} />
+    </button>
+  </motion.div>
+);
 
-const navItems = [
-  { id: "dashboard", label: "Dashboard",    icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
-  { id: "servers",   label: "Servers",      icon: "M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" },
-  { id: "settings",  label: "Settings",     icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
-];
+// --- Sub-Components ---
 
-/* ── Globe ── */
-function Globe({ active, size = 280 }) {
-  const ref = useRef(null);
-  const raf = useRef(null);
-  const t   = useRef(0);
+const StatCard = ({ icon: Icon, label, value, subValue, color = "blue" }) => (
+  <motion.div
+    whileHover={{ y: -2 }}
+    className="glass-panel p-4 flex flex-col gap-1"
+  >
+    <div className="flex items-center gap-2 text-slate-400 mb-1">
+      <Icon size={14} className={`text-${color}-400`} />
+      <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+    </div>
+    <div className="text-xl font-bold text-white font-mono">{value}</div>
+    <div className="text-[10px] text-slate-500 font-medium">{subValue}</div>
+  </motion.div>
+);
+
+const NodeFlow = ({ connected, nodes }) => {
+  const hops = [
+    { id: 'user', label: 'Your Device', icon: Smartphone, color: '#F8FAFC' },
+    { id: 'entry', label: nodes?.entry?.provider || 'Entry Node', icon: Cpu, color: '#0066FF' },
+    { id: 'exit', label: nodes?.exit?.provider || 'Exit Node', icon: Database, color: '#00D1FF' },
+    { id: 'web', label: 'Internet', icon: Globe, color: '#10B981' },
+  ];
+
+  return (
+    <div className="glass-panel p-6 overflow-hidden">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-sm font-bold flex items-center gap-2">
+          <Activity size={16} className="text-blue-400" />
+          Multi-Hop Visualization
+        </h3>
+        {connected && (
+          <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
+            <div className="status-pulse">
+              <span className="status-pulse-dot bg-blue-400"></span>
+              <span className="status-pulse-core bg-blue-500"></span>
+            </div>
+            <span className="text-[10px] font-bold text-blue-400 uppercase">Encrypted Path</span>
+          </div>
+        )}
+      </div>
+
+      <div className="relative flex items-center justify-between px-4 py-8">
+        <div className="absolute top-1/2 left-0 w-full h-[1px] bg-white/5 -translate-y-1/2 z-0" />
+        {connected && (
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            className="absolute top-1/2 left-0 w-full h-[2px] bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-500 -translate-y-1/2 z-0 origin-left"
+          />
+        )}
+
+        {hops.map((hop, i) => (
+          <div key={hop.id} className="relative z-10 flex flex-col items-center gap-3">
+            <motion.div
+              animate={connected ? {
+                boxShadow: [`0 0 0px ${hop.color}00`, `0 0 20px ${hop.color}44`, `0 0 0px ${hop.color}00`],
+              } : {}}
+              transition={{ repeat: Infinity, duration: 3, delay: i * 0.5 }}
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors duration-500 ${connected ? 'bg-slate-900 border-2' : 'bg-slate-900/50 border border-white/5'
+                }`}
+              style={{ borderColor: connected ? hop.color : 'rgba(255,255,255,0.05)' }}
+            >
+              <hop.icon size={20} style={{ color: connected ? hop.color : '#475569' }} />
+            </motion.div>
+            <div className="flex flex-col items-center">
+              <span className={`text-[10px] font-bold uppercase tracking-tight ${connected ? 'text-white' : 'text-slate-600'}`}>
+                {hop.label}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const QRPanel = ({ onGenerate, qrData, loading, addToast }) => {
+  const [deviceName, setDeviceName] = useState("");
+  const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
-    const c = ref.current;
-    const ctx = c.getContext("2d");
-    const W = c.width, H = c.height;
-    const cx = W / 2, cy = H / 2, R = W * 0.42;
-
-    function pt(lat, lon, time) {
-      const phi   = (90 - lat) * (Math.PI / 180);
-      const theta = (lon + time * 14) * (Math.PI / 180);
-      return {
-        x: cx + R * Math.sin(phi) * Math.cos(theta),
-        y: cy + R * Math.cos(phi),
-        z:      R * Math.sin(phi) * Math.sin(theta),
-      };
+    let timer;
+    if (qrData && timeLeft > 0) {
+      timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
     }
+    return () => clearInterval(timer);
+  }, [qrData, timeLeft]);
 
-    const hotspots = [
-      { lat: 51, lon: 10 }, { lat: 52, lon: 5 }, { lat: 60, lon: 25 },
-      { lat: 47, lon: 8  }, { lat: 1,  lon: 104}, { lat: 35, lon: 139},
-    ];
-
-    function frame() {
-      t.current += 0.003;
-      ctx.clearRect(0, 0, W, H);
-
-      // Base
-      const bg = ctx.createRadialGradient(cx - R*0.2, cy - R*0.2, 0, cx, cy, R);
-      bg.addColorStop(0, active ? "rgba(0,255,180,0.08)" : "rgba(60,60,160,0.07)");
-      bg.addColorStop(1, "transparent");
-      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2);
-      ctx.fillStyle = bg; ctx.fill();
-
-      // Grid
-      ctx.globalAlpha = active ? 0.18 : 0.08;
-      const col = active ? "#00ffb4" : "#7788ee";
-      for (let la = -60; la <= 60; la += 20) {
-        ctx.beginPath(); let f = true;
-        for (let lo = 0; lo <= 360; lo += 3) {
-          const p = pt(la, lo, t.current);
-          if (p.z < 0) { f = true; continue; }
-          f ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); f = false;
-        }
-        ctx.strokeStyle = col; ctx.lineWidth = 0.5; ctx.stroke();
-      }
-      for (let lo = 0; lo < 360; lo += 20) {
-        ctx.beginPath(); let f = true;
-        for (let la = -90; la <= 90; la += 3) {
-          const p = pt(la, lo, t.current);
-          if (p.z < 0) { f = true; continue; }
-          f ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); f = false;
-        }
-        ctx.strokeStyle = col; ctx.lineWidth = 0.5; ctx.stroke();
-      }
-      ctx.globalAlpha = 1;
-
-      // Hotspots
-      if (active) {
-        hotspots.forEach((h, i) => {
-          const p = pt(h.lat, h.lon, t.current);
-          if (p.z < 0) return;
-          const pulse = (Math.sin(t.current * 2.5 + i) + 1) / 2;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, 2 + pulse * 2, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(0,255,180,${0.5 + pulse * 0.5})`;
-          ctx.fill();
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, 5 + pulse * 5, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(0,255,180,${0.1 + pulse * 0.12})`;
-          ctx.lineWidth = 1; ctx.stroke();
-        });
-      }
-
-      // Edge
-      const edge = ctx.createRadialGradient(cx, cy, R * 0.7, cx, cy, R);
-      edge.addColorStop(0, "transparent");
-      edge.addColorStop(1, active ? "rgba(0,255,180,0.1)" : "rgba(60,60,180,0.07)");
-      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2);
-      ctx.fillStyle = edge; ctx.fill();
-
-      // Spec
-      const spec = ctx.createRadialGradient(cx-R*0.35, cy-R*0.35, 0, cx-R*0.2, cy-R*0.2, R*0.5);
-      spec.addColorStop(0, "rgba(255,255,255,0.07)");
-      spec.addColorStop(1, "transparent");
-      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2);
-      ctx.fillStyle = spec; ctx.fill();
-
-      raf.current = requestAnimationFrame(frame);
-    }
-    frame();
-    return () => cancelAnimationFrame(raf.current);
-  }, [active]);
-
-  return (
-    <canvas ref={ref} width={size} height={size}
-      style={{ filter: active ? "drop-shadow(0 0 40px rgba(0,255,180,0.25))" : "drop-shadow(0 0 20px rgba(60,60,180,0.18))", transition: "filter 1s" }} />
-  );
-}
-
-/* ── Route strip ── */
-function RouteStrip({ active }) {
-  const hops = ["Client", "Vultr · Relay", "Hetzner · Exit", "Internet"];
-  return (
-    <div className="flex items-center gap-0">
-      {hops.map((h, i) => (
-        <div key={i} className="flex items-center">
-          <div className="flex flex-col items-center gap-1.5">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full transition-all duration-700"
-                style={{
-                  background: active ? (i === 0 ? "#00ffb4" : i === hops.length-1 ? "#00ccff" : "rgba(255,255,255,0.5)") : "rgba(255,255,255,0.15)",
-                  boxShadow: active ? (i === 0 ? "0 0 8px #00ffb4" : i === hops.length-1 ? "0 0 8px #00ccff" : "none") : "none",
-                }} />
-            </div>
-            <span style={{ fontSize: 10, color: active ? (i===0?"#00ffb4":i===hops.length-1?"#00ccff":"rgba(255,255,255,0.5)") : "rgba(255,255,255,0.2)", fontFamily:"'Space Mono',monospace", whiteSpace:"nowrap", transition:"color 0.7s" }}>
-              {h}
-            </span>
-          </div>
-          {i < hops.length - 1 && (
-            <div className="relative mx-3 flex-shrink-0" style={{ width: 40, height: 1, background: "rgba(255,255,255,0.07)", overflow:"hidden" }}>
-              {active && (
-                <div style={{ position:"absolute", top:0, height:"100%", width:"50%", background:"linear-gradient(90deg,transparent,#00ffb4,transparent)", animation:`slide ${1.2 + i*0.2}s linear ${i*0.3}s infinite` }} />
-              )}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ── Trust badge ── */
-function Badge({ label, ok }) {
-  return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-      style={{ background: ok ? "rgba(0,255,180,0.06)" : "rgba(255,255,255,0.03)", border: `1px solid ${ok ? "rgba(0,255,180,0.2)" : "rgba(255,255,255,0.07)"}`, transition:"all 0.5s" }}>
-      <div className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-        style={{ background: ok ? "#00ffb4" : "rgba(255,255,255,0.2)", boxShadow: ok ? "0 0 5px #00ffb4" : "none", transition:"all 0.5s" }} />
-      <span style={{ fontSize: 11, color: ok ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.28)", fontFamily:"'Space Mono',monospace" }}>{label}</span>
-    </div>
-  );
-}
-
-/* ── Main ── */
-export default function Dashboard() {
-  const [connected,  setConnected]  = useState(false);
-  const [connecting, setConnecting] = useState(false);
-  const [selected,   setSelected]   = useState(0);
-  const [activeNav,  setActiveNav]  = useState("dashboard");
-
-  const toggle = () => {
-    if (connecting) return;
-    setConnecting(true);
-    setTimeout(() => { setConnected(c => !c); setConnecting(false); }, 1800);
+  const handleGenerate = async (name) => {
+    await onGenerate(name);
+    setTimeLeft(120); // 2 minutes
+    addToast("QR Config Generated Successfully");
   };
 
-  const server      = servers[selected];
-  const statusColor = connecting ? "#ffaa00" : connected ? "#00ffb4" : "#ff4466";
+  const handleCopy = () => {
+    if (qrData?.config) {
+      navigator.clipboard.writeText(qrData.config);
+      addToast("Config Copied to Clipboard");
+    }
+  };
+
+  const isExpired = timeLeft <= 0 && qrData;
 
   return (
-    <div className="flex min-h-screen" style={{ background: "#080b14", fontFamily: "'Sora', sans-serif", color: "#fff" }}>
+    <div className="glass-panel p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-sm font-bold flex items-center gap-2">
+          <Smartphone size={16} className="text-purple-400" />
+          QR Provisioning
+        </h3>
+      </div>
 
-      {/* ── Sidebar ── */}
-      <aside className="flex flex-col w-56 flex-shrink-0 border-r" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)" }}>
-        {/* Logo */}
-        <div className="px-6 py-6 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: "linear-gradient(135deg, #00ffb4, #00aaff)" }}>
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <path d="M8 1L2 4v4c0 3.5 2.5 6.2 6 7 3.5-.8 6-3.5 6-7V4L8 1z" fill="white"/>
-              </svg>
-            </div>
-            <div>
-              <div className="font-bold text-white text-sm tracking-tight" style={{ fontFamily:"'Space Mono',monospace" }}>NEXUS</div>
-              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontFamily:"'Space Mono',monospace" }}>VPN</div>
-            </div>
+      {!qrData ? (
+        <div className="space-y-4">
+          <div className="p-4 rounded-xl bg-white/5 border border-white/5">
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Generate a temporary WireGuard configuration for your mobile device. No logs are stored beyond this session.
+            </p>
+          </div>
+          <input
+            type="text"
+            placeholder="Device Name (e.g. iPhone 15)"
+            value={deviceName}
+            onChange={(e) => setDeviceName(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500/50 transition-colors"
+          />
+          <button
+            onClick={() => handleGenerate(deviceName)}
+            disabled={loading}
+            className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm transition-all disabled:opacity-50"
+          >
+            {loading ? "Generating..." : "Generate Config"}
+          </button>
+        </div>
+      ) : (
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center gap-4">
+          <div className={`relative p-3 bg-white rounded-2xl shadow-2xl transition-all duration-500 ${isExpired ? 'blur-md opacity-30 grayscale pointer-events-none' : 'shadow-purple-500/20'}`}>
+            <QRCodeSVG value={qrData.config} size={160} level="H" />
+            {isExpired && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Lock className="text-slate-900" size={48} />
+              </div>
+            )}
+          </div>
+
+          <div className="text-center">
+            {isExpired ? (
+              <div className="text-xs font-bold text-rose-400 uppercase tracking-widest">Config Expired</div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Clock size={12} className="text-slate-500" />
+                <span className="text-xs font-mono text-white">Expires in {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 w-full">
+            {!isExpired ? (
+              <button
+                onClick={handleCopy}
+                className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-wider hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+              >
+                <Copy size={12} />
+                Copy Config
+              </button>
+            ) : (
+              <button
+                onClick={() => handleGenerate(deviceName)}
+                className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold uppercase tracking-wider transition-all"
+              >
+                Regenerate QR
+              </button>
+            )}
+            <button
+              onClick={() => { setQrData(null); setTimeLeft(0); }}
+              className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-wider hover:bg-white/10 transition-all"
+            >
+              Reset
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+};
+
+// --- Main Dashboard ---
+
+export default function Dashboard() {
+  const [connected, setConnected] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [session, setSession] = useState(null);
+  const [metrics, setMetrics] = useState(null);
+  const [nodes, setNodes] = useState(null);
+  const [selectedServer, setSelectedServer] = useState(null);
+  const [qrData, setQrData] = useState(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [rotationTimer, setRotationTimer] = useState(900);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [toasts, setToasts] = useState([]);
+
+  const addToast = useCallback((message, type = "success") => {
+    const id = Math.random().toString(36).substring(7);
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 3000);
+  }, []);
+
+  useEffect(() => {
+    const init = async () => {
+      const sess = await mockApi.createSession();
+      setSession(sess);
+    };
+    init();
+  }, []);
+
+  useEffect(() => {
+    let interval;
+    if (connected) {
+      interval = setInterval(async () => {
+        const m = await mockApi.getMetrics();
+        setMetrics(m);
+        setRotationTimer(prev => (prev > 0 ? prev - 1 : 900));
+      }, 2000);
+    }
+    return () => clearInterval(interval);
+  }, [connected]);
+
+  const handleConnect = async (server) => {
+    if (connecting) return;
+    setError(null);
+    setSelectedServer(server);
+
+    if (connected && selectedServer?.id === server.id) {
+      await mockApi.disconnect();
+      setConnected(false);
+      setMetrics(null);
+      addToast("Disconnected from VPN", "info");
+    } else {
+      setConnecting(true);
+      try {
+        const res = await mockApi.connect(server.id);
+        setConnected(true);
+        setNodes(res.nodes);
+        addToast(`Connected to ${server.country}`);
+        setActiveTab('dashboard');
+      } catch (err) {
+        setError(err.message);
+        addToast(err.message, "error");
+      } finally {
+        setConnecting(false);
+      }
+    }
+  };
+
+  const formatTime = (s) => {
+    const m = Math.floor(s / 60);
+    const rs = s % 60;
+    return `${m}:${rs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="min-h-screen bg-mesh flex">
+      <div className="bg-grid fixed inset-0 opacity-20 pointer-events-none" />
+
+      {/* Toast Container */}
+      <AnimatePresence>
+        {toasts.map(t => (
+          <Toast key={t.id} {...t} onClose={() => setToasts(prev => prev.filter(x => x.id !== t.id))} />
+        ))}
+      </AnimatePresence>
+
+      {/* Sidebar */}
+      <aside className="w-64 border-r border-white/5 p-6 flex flex-col gap-8 z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <Shield className="text-white" size={20} />
+          </div>
+          <div>
+            <div className="font-black text-lg tracking-tighter italic">NEXUS</div>
+            <div className="text-[8px] font-bold text-blue-400 uppercase tracking-[0.2em] -mt-1">Secure Tunnel</div>
           </div>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {navItems.map(item => (
-            <button key={item.id} onClick={() => setActiveNav(item.id)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-left"
-              style={{
-                background: activeNav === item.id ? "rgba(0,255,180,0.08)" : "transparent",
-                border: `1px solid ${activeNav === item.id ? "rgba(0,255,180,0.15)" : "transparent"}`,
-                color: activeNav === item.id ? "#00ffb4" : "rgba(255,255,255,0.4)",
-                cursor: "pointer",
-              }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                <path d={item.icon}/>
-              </svg>
-              <span style={{ fontSize: 13, fontWeight: 500 }}>{item.label}</span>
+        <nav className="flex flex-col gap-2">
+          {[
+            { id: 'dashboard', label: 'Dashboard', icon: Activity },
+            { id: 'servers', label: 'Server List', icon: Globe },
+            { id: 'devices', label: 'Devices', icon: Smartphone },
+            { id: 'settings', label: 'Settings', icon: SettingsIcon },
+          ].map(item => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:bg-white/5'
+                }`}
+            >
+              <item.icon size={18} />
+              {item.label}
             </button>
           ))}
         </nav>
 
-        {/* Bottom status */}
-        <div className="px-4 py-4 border-t" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: statusColor, boxShadow: `0 0 6px ${statusColor}`, transition: "all 0.5s" }} />
-            <div>
-              <div style={{ fontSize: 11, color: statusColor, fontFamily:"'Space Mono',monospace", transition:"color 0.5s" }}>
-                {connecting ? "Connecting…" : connected ? "Protected" : "Offline"}
-              </div>
-              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)" }}>
-                {connected ? `${server.city}, ${server.code}` : "No tunnel"}
-              </div>
+        <div className="mt-auto">
+          <div className="glass-panel p-4 group cursor-help relative">
+            <div className="flex items-center gap-2 mb-2">
+              <Lock size={14} className="text-emerald-400" />
+              <span className="text-[10px] font-black uppercase text-emerald-400 tracking-widest">Privacy Mode</span>
             </div>
+            <div className="text-[10px] text-slate-400 font-medium leading-relaxed">
+              No activity, IP, or DNS logs are stored in this session.
+            </div>
+            <div className="tooltip">Strict Zero-Logs Policy Active</div>
           </div>
         </div>
       </aside>
 
-      {/* ── Main content ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-
-        {/* Topbar */}
-        <header className="flex items-center justify-between px-8 py-4 border-b flex-shrink-0"
-          style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.01)" }}>
+      {/* Main Content */}
+      <main className="flex-1 p-8 z-10 overflow-y-auto">
+        <header className="flex items-center justify-between mb-10">
           <div>
-            <h1 className="font-bold text-white" style={{ fontSize: 20, letterSpacing: "-0.3px" }}>Dashboard</h1>
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", marginTop: 1 }}>No-logs double-hop VPN · Prototype</p>
+            <h1 className="text-2xl font-black tracking-tight">
+              {activeTab === 'dashboard' ? 'Network Overview' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+            </h1>
+            <p className="text-slate-500 text-sm font-medium">Ephemeral Node Infrastructure v2.5.0</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily:"'Space Mono',monospace" }}>
-              WireGuard · AES-256-GCM
+
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-end">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Session ID</div>
+              <div className="text-xs font-mono text-white">{session?.id || 'Initializing...'}</div>
             </div>
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg,#00ffb4,#00aaff)", fontSize: 13, fontWeight: 700, color: "#000" }}>N</div>
+            <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10B981]" />
+            </div>
           </div>
         </header>
 
-        {/* Content grid */}
-        <main className="flex-1 overflow-y-auto p-8" style={{ background: "transparent" }}>
-          <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 360px" }}>
-
-            {/* ── LEFT COLUMN ── */}
-            <div className="flex flex-col gap-6">
-
-              {/* Connection card */}
-              <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                {/* Accent top */}
-                <div className="h-px" style={{ background: connected ? "linear-gradient(90deg,transparent,#00ffb4 40%,transparent)" : "linear-gradient(90deg,transparent,#5566ff 40%,transparent)", transition:"background 1s" }} />
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-6">
-                    <div>
-                      <h2 className="font-semibold text-white mb-1" style={{ fontSize: 16 }}>Tunnel Control</h2>
-                      <p style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>
-                        {connecting ? "Establishing encrypted tunnel…" : connected ? `Connected via ${server.city}` : "Tunnel inactive — you are exposed"}
-                      </p>
-                    </div>
-                    {/* Big toggle */}
-                    <button onClick={toggle}
-                      className="flex items-center gap-3 px-5 py-2.5 rounded-xl font-semibold transition-all duration-500"
-                      style={{
-                        background: connecting ? "rgba(255,170,0,0.12)" : connected ? "rgba(0,255,180,0.12)" : "rgba(255,68,102,0.1)",
-                        border: `1.5px solid ${connecting ? "#ffaa00" : connected ? "#00ffb4" : "#ff4466"}`,
-                        color: connecting ? "#ffaa00" : connected ? "#00ffb4" : "#ff4466",
-                        cursor: "pointer", fontSize: 13,
-                        boxShadow: connected ? "0 0 20px rgba(0,255,180,0.15)" : "none",
-                        transition: "all 0.5s",
-                      }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 3v5M7.05 7.05a7 7 0 1 0 9.9 0" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"
-                          style={{ animation: connecting ? "spin 1s linear infinite" : "none" }} />
-                      </svg>
-                      {connecting ? "Connecting…" : connected ? "Disconnect" : "Connect"}
-                    </button>
-                  </div>
-
-                  {/* Route */}
-                  <div className="p-4 rounded-xl mb-5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                    <div className="flex items-center justify-between mb-3">
-                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily:"'Space Mono',monospace" }}>TUNNEL ROUTE</span>
-                      <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", fontFamily:"'Space Mono',monospace" }}>Double-hop · No-logs</span>
-                    </div>
-                    <RouteStrip active={connected && !connecting} />
-                  </div>
-
-                  {/* Trust badges */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge label="No Logs"     ok={true}      />
-                    <Badge label="Kill Switch"  ok={connected} />
-                    <Badge label="No DNS Leak"  ok={connected} />
-                    <Badge label="IPv6 Leak"    ok={connected} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Server list panel */}
-              <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-                  <h2 className="font-semibold text-white" style={{ fontSize: 15 }}>Exit Servers</h2>
-                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", fontFamily:"'Space Mono',monospace" }}>{servers.length} available</span>
-                </div>
-                <div>
-                  {servers.map((s, i) => (
-                    <button key={i} onClick={() => setSelected(i)}
-                      className="w-full flex items-center gap-4 px-6 py-4 transition-all duration-150 text-left"
-                      style={{
-                        background: i === selected ? "rgba(0,255,180,0.04)" : "transparent",
-                        borderBottom: i < servers.length-1 ? "1px solid rgba(255,255,255,0.04)" : "none",
-                        borderLeft: `2px solid ${i === selected ? "#00ffb4" : "transparent"}`,
-                        cursor: "pointer", transition: "all 0.2s",
-                      }}>
-                      <span style={{ fontSize: 24, lineHeight: 1 }}>{s.flag}</span>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-white" style={{ fontSize: 14 }}>{s.country}</span>
-                          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", fontFamily:"'Space Mono',monospace" }}>{s.code}</span>
-                        </div>
-                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 1 }}>{s.city} · {s.region}</div>
+        <AnimatePresence mode="wait">
+          {activeTab === 'dashboard' && (
+            <motion.div
+              key="dashboard"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="grid grid-cols-12 gap-6"
+            >
+              <div className="col-span-8 space-y-6">
+                <div className="glass-panel p-8 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-500 opacity-50" />
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${connected ? 'bg-emerald-500 shadow-[0_0_15px_#10B981]' : 'bg-rose-500 shadow-[0_0_15px_#F43F5E]'}`} />
+                        <span className="text-lg font-black uppercase tracking-tighter">
+                          {connecting ? "Establishing Tunnel..." : connected ? "Protected" : "Unprotected"}
+                        </span>
                       </div>
-                      {i === selected && (
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#00ffb4", boxShadow: "0 0 5px #00ffb4" }} />
-                          <span style={{ fontSize: 10, color: "#00ffb4", fontFamily:"'Space Mono',monospace" }}>Selected</span>
+                      <div className="flex items-center gap-6">
+                        <div>
+                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Current Server</div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{selectedServer?.flag || "🌐"}</span>
+                            <span className="text-lg font-bold">{selectedServer?.country || "Not Connected"}</span>
+                          </div>
                         </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* ── RIGHT COLUMN ── */}
-            <div className="flex flex-col gap-6">
-
-              {/* Globe panel */}
-              <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                <div className="px-5 py-4 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-                  <h2 className="font-semibold text-white" style={{ fontSize: 15 }}>Network</h2>
-                </div>
-                <div className="flex items-center justify-center py-6">
-                  <Globe active={connected && !connecting} size={240} />
-                </div>
-                <div className="px-5 pb-5 text-center">
-                  <div className="text-white font-semibold mb-0.5" style={{ fontSize: 14 }}>
-                    {connected ? server.country : "—"}
-                  </div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
-                    {connected ? `${server.city} exit node` : "No exit node selected"}
-                  </div>
-                </div>
-              </div>
-
-              {/* Architecture info */}
-              <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                <div className="px-5 py-4 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-                  <h2 className="font-semibold text-white" style={{ fontSize: 15 }}>Architecture</h2>
-                </div>
-                <div className="px-5 py-4 space-y-4">
-                  {[
-                    { label: "Relay Layer",  value: "Vultr",        note: "Entry · Traffic obfuscation" },
-                    { label: "Exit Layer",   value: "Hetzner",      note: "Exit · IP masking" },
-                    { label: "Protocol",     value: "WireGuard",    note: "Modern VPN protocol" },
-                    { label: "Encryption",   value: "AES-256-GCM",  note: "Military-grade cipher" },
-                    { label: "Log Policy",   value: "Zero Logs",    note: "Nothing stored, ever" },
-                  ].map((row, i) => (
-                    <div key={i} className="flex items-start justify-between">
-                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>{row.label}</div>
-                      <div className="text-right">
-                        <div className="font-semibold text-white" style={{ fontSize: 12, fontFamily:"'Space Mono',monospace" }}>{row.value}</div>
-                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.22)", marginTop: 1 }}>{row.note}</div>
+                        <div className="w-px h-10 bg-white/5" />
+                        <div>
+                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Virtual IP</div>
+                          <div className="text-lg font-mono font-bold text-blue-400">{metrics?.ip || "---.---.---.---"}</div>
+                        </div>
                       </div>
                     </div>
-                  ))}
+                    <button
+                      onClick={() => handleConnect(selectedServer || { id: 'de-1' })}
+                      disabled={connecting}
+                      className={`w-24 h-24 rounded-full flex flex-col items-center justify-center gap-1 transition-all duration-500 ${connected
+                          ? 'bg-emerald-500/10 border-2 border-emerald-500 text-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.2)]'
+                          : 'bg-blue-600 border-2 border-blue-500 text-white shadow-[0_0_30px_rgba(0,102,255,0.3)] hover:scale-105'
+                        }`}
+                    >
+                      <Power size={32} className={connecting ? 'animate-spin' : ''} />
+                      <span className="text-[10px] font-black uppercase">{connected ? "ON" : "OFF"}</span>
+                    </button>
+                  </div>
+                  {error && (
+                    <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} className="mt-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center gap-3 text-rose-400">
+                      <AlertTriangle size={18} />
+                      <span className="text-xs font-bold">{error}</span>
+                    </motion.div>
+                  )}
+                </div>
+                <NodeFlow connected={connected} nodes={nodes} />
+                <div className="grid grid-cols-3 gap-4">
+                  <StatCard icon={Zap} label="Latency" value={metrics ? `${metrics.latency} ms` : "---"} subValue={metrics?.latency < 50 ? "Excellent" : "Average"} color="cyan" />
+                  <StatCard icon={RefreshCw} label="Rotation" value={formatTime(rotationTimer)} subValue="Next Node Shift" color="purple" />
+                  <StatCard icon={Clock} label="Session" value={connected ? "00:12:45" : "00:00:00"} subValue="Active Time" color="emerald" />
                 </div>
               </div>
-
-              {/* Backend placeholder */}
-              <div className="rounded-2xl px-5 py-4 flex items-center gap-3"
-                style={{ background: "rgba(255,170,0,0.05)", border: "1px dashed rgba(255,170,0,0.2)" }}>
-                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#ffaa00" }} />
-                <p style={{ fontSize: 11, color: "rgba(255,170,0,0.7)", lineHeight: 1.5 }}>
-                  Backend integration pending. API hooks ready in <span style={{ fontFamily:"'Space Mono',monospace" }}>toggle()</span>.
-                </p>
+              <div className="col-span-4 space-y-6">
+                <QRPanel onGenerate={mockApi.generateConfig} qrData={qrData} loading={qrLoading} addToast={addToast} />
+                <div className="glass-panel p-6">
+                  <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
+                    <Globe size={16} className="text-blue-400" />
+                    Quick Connect
+                  </h3>
+                  <button
+                    onClick={() => setActiveTab('servers')}
+                    className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-all"
+                  >
+                    View All Servers
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
-        </main>
-      </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'servers' && (
+            <motion.div key="servers" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <ServerList onConnect={handleConnect} />
+            </motion.div>
+          )}
+
+          {activeTab === 'settings' && (
+            <motion.div key="settings" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <Settings />
+            </motion.div>
+          )}
+
+          {activeTab === 'devices' && (
+            <motion.div key="devices" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="text-center py-20">
+              <Smartphone size={48} className="mx-auto text-slate-700 mb-4" />
+              <h3 className="text-lg font-bold text-white">Device Manager</h3>
+              <p className="text-sm text-slate-500">Manage your connected devices here.</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
     </div>
   );
 }
