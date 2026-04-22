@@ -23,7 +23,7 @@ const Toggle = ({ enabled, onChange, label, subLabel }) => (
         </div>
         <button
             onClick={() => onChange(!enabled)}
-            className={`w-12 h-6 rounded-full relative transition-colors ${enabled ? 'bg-blue-600' : 'bg-slate-700'}`}
+            className={`w-12 h-6 rounded-full relative transition-colors ${enabled ? 'bg-indigo-600' : 'bg-slate-700'}`}
         >
             <motion.div
                 animate={{ x: enabled ? 26 : 2 }}
@@ -45,7 +45,7 @@ const Select = ({ label, value, options, onChange, icon: Icon }) => (
             <select
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className="appearance-none bg-slate-900 border border-white/10 rounded-xl px-4 py-2 pr-10 text-xs font-bold text-white focus:outline-none focus:border-blue-500/50"
+                className="appearance-none bg-slate-900 border border-white/10 rounded-xl px-4 py-2 pr-10 text-xs font-bold text-white focus:outline-none focus:border-indigo-500/50"
             >
                 {options.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -153,8 +153,8 @@ export default function Settings() {
                     />
                     <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                                <Cpu size={16} className="text-blue-400" />
+                            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                                <Cpu size={16} className="text-indigo-400" />
                             </div>
                             <div className="text-sm font-bold text-white">Protocol</div>
                         </div>
@@ -163,7 +163,7 @@ export default function Settings() {
                                 <button
                                     key={p}
                                     disabled={p !== 'WireGuard'}
-                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${p === 'WireGuard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-white/5 text-slate-600 cursor-not-allowed'
+                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${p === 'WireGuard' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white/5 text-slate-600 cursor-not-allowed'
                                         }`}
                                 >
                                     {p}
@@ -193,7 +193,7 @@ export default function Settings() {
                                     <span className="text-xs text-slate-400 font-medium">{n.label}</span>
                                     <button
                                         onClick={() => updateNested('notifications', n.key, !settings.notifications[n.key])}
-                                        className={`w-8 h-4 rounded-full relative transition-colors ${settings.notifications[n.key] ? 'bg-blue-600' : 'bg-slate-700'}`}
+                                        className={`w-8 h-4 rounded-full relative transition-colors ${settings.notifications[n.key] ? 'bg-indigo-600' : 'bg-slate-700'}`}
                                     >
                                         <motion.div
                                             animate={{ x: settings.notifications[n.key] ? 18 : 2 }}
@@ -218,7 +218,7 @@ export default function Settings() {
                     <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
-                                {settings.theme === 'dark' ? <Moon size={16} className="text-blue-400" /> : <Sun size={16} className="text-amber-400" />}
+                                {settings.theme === 'dark' ? <Moon size={16} className="text-indigo-400" /> : <Sun size={16} className="text-amber-400" />}
                             </div>
                             <div className="text-sm font-bold text-white">Theme</div>
                         </div>

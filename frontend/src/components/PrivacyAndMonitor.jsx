@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 
 /* ── Privacy Mode Indicator ── */
 export function PrivacyIndicator({ connected, sessionExpired }) {
-    const [hovered, setHovered] = useState(false);
 
     const getState = () => {
         if (sessionExpired) return { icon: "⚠️", label: "Session Expired", color: "#ff4466", bg: "rgba(255,68,102,0.08)", border: "rgba(255,68,102,0.2)" };
@@ -13,7 +12,7 @@ export function PrivacyIndicator({ connected, sessionExpired }) {
     const state = getState();
 
     return (
-        <div className="tooltip-container" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+        <div className="tooltip-container">
             <div className="flex items-center gap-2.5 px-4 py-2 rounded-xl transition-all duration-300"
                 style={{
                     background: state.bg,
@@ -60,7 +59,7 @@ export function SessionTimer({ expiresAt, onExtend, onExpired }) {
         update();
         intervalRef.current = setInterval(update, 1000);
         return () => clearInterval(intervalRef.current);
-    }, [expiresAt]);
+    }, [expiresAt, expired, onExpired]);
 
     const minutes = Math.floor(remaining / 60000);
     const seconds = Math.floor((remaining % 60000) / 1000);

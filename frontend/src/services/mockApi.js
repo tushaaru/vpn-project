@@ -8,28 +8,18 @@ const LATENCY_RANGE = [20, 150];
 const SPEED_RANGE = [50, 500];
 
 export const servers = [
-    { id: 'de-1', country: "Germany", city: "Frankfurt", code: "DE", flag: "🇩🇪", region: "Europe", load: 42, tags: ["Fastest", "Recommended"] },
-    { id: 'nl-1', country: "Netherlands", city: "Amsterdam", code: "NL", flag: "🇳🇱", region: "Europe", load: 15, tags: ["P2P Optimized"] },
-    { id: 'fi-1', country: "Finland", city: "Helsinki", code: "FI", flag: "🇫🇮", region: "Europe", load: 28, tags: ["Secure Core"] },
-    { id: 'ch-1', country: "Switzerland", city: "Zürich", code: "CH", flag: "🇨🇭", region: "Europe", load: 12, tags: ["Privacy First"] },
-    { id: 'sg-1', country: "Singapore", city: "Singapore", code: "SG", flag: "🇸🇬", region: "Asia Pacific", load: 65, tags: ["Gaming"] },
-    { id: 'jp-1', country: "Japan", city: "Tokyo", code: "JP", flag: "🇯🇵", region: "Asia Pacific", load: 55, tags: ["Fastest"] },
-    { id: 'us-1', country: "United States", city: "New York", code: "US", flag: "🇺🇸", region: "North America", load: 82, tags: ["Streaming"] },
-    { id: 'us-2', country: "United States", city: "Los Angeles", code: "US", flag: "🇺🇸", region: "North America", load: 74, tags: ["Recommended"] },
-    { id: 'uk-1', country: "United Kingdom", city: "London", code: "GB", flag: "🇬🇧", region: "Europe", load: 38, tags: ["Fastest"] },
-    { id: 'ca-1', country: "Canada", city: "Toronto", code: "CA", flag: "🇨🇦", region: "North America", load: 22, tags: ["P2P Optimized"] },
+    { id: 'in-1', country: "India", city: "Mumbai", code: "IN", flag: "🇮🇳", region: "Asia Pacific", load: 24, tags: ["Low Latency", "Multi-Hop"] },
+    { id: 'ch-1', country: "Switzerland", city: "Zürich", code: "CH", flag: "🇨🇭", region: "Europe", load: 12, tags: ["Privacy First", "Multi-Hop"] },
 ];
 
 const nodePool = {
     entry: [
-        { id: "vultr-fra", provider: "Vultr", location: "Frankfurt", ip: "45.76.12.88" },
-        { id: "vultr-ams", provider: "Vultr", location: "Amsterdam", ip: "45.32.45.102" },
-        { id: "vultr-sgp", provider: "Vultr", location: "Singapore", ip: "45.77.201.34" },
+        { id: "relay-mum", provider: "Nexus Relay", location: "Mumbai", ip: "103.21.52.12" },
+        { id: "relay-zrh", provider: "Nexus Relay", location: "Zürich", ip: "185.19.28.44" },
     ],
     exit: [
-        { id: "hetzner-hel", provider: "Hetzner", location: "Helsinki", ip: "95.216.18.44" },
-        { id: "hetzner-nbg", provider: "Hetzner", location: "Nuremberg", ip: "78.46.92.11" },
-        { id: "hetzner-fsn", provider: "Hetzner", location: "Falkenstein", ip: "88.198.34.56" },
+        { id: "exit-mum", provider: "Nexus Exit", location: "Mumbai", ip: "103.21.52.88" },
+        { id: "exit-zrh", provider: "Nexus Exit", location: "Zürich", ip: "185.19.28.102" },
     ],
 };
 
@@ -136,8 +126,15 @@ export const mockApi = {
             id,
             name: deviceName || `Device-${id}`,
             type: 'mobile',
-            addedAt: Date.now(),
-            config: `vpn://nexus-secure-${id}`,
+            config: `[Interface]
+PrivateKey = ${Math.random().toString(36).substring(2, 32)}
+Address = 10.0.0.2/32
+DNS = 1.1.1.1
+
+[Peer]
+PublicKey = ${Math.random().toString(36).substring(2, 32)}
+Endpoint = 103.21.52.88:51820
+AllowedIPs = 0.0.0.0/0`,
             expiresAt: Date.now() + 2 * 60 * 1000 // 2 minutes expiry
         };
         devices.push(device);

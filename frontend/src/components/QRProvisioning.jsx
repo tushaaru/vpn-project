@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 
 /* ── QR Provisioning Panel ── */
-export function QRProvisioning({ sessionId, onGeneratePeer, qrData, loading }) {
+export function QRProvisioning({ onGeneratePeer, qrData, loading }) {
     const [deviceName, setDeviceName] = useState("");
     const [deviceType, setDeviceType] = useState("mobile");
     const [showConfig, setShowConfig] = useState(false);
@@ -50,11 +50,11 @@ export function QRProvisioning({ sessionId, onGeneratePeer, qrData, loading }) {
                                     <button key={dt.id} onClick={() => setDeviceType(dt.id)}
                                         className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl transition-all duration-200"
                                         style={{
-                                            background: deviceType === dt.id ? "rgba(0,255,180,0.06)" : "rgba(255,255,255,0.02)",
-                                            border: `1px solid ${deviceType === dt.id ? "rgba(0,255,180,0.2)" : "rgba(255,255,255,0.06)"}`,
+                                            background: deviceType === dt.id ? "rgba(16,185,129,0.06)" : "rgba(255,255,255,0.02)",
+                                            border: `1px solid ${deviceType === dt.id ? "rgba(16,185,129,0.2)" : "rgba(255,255,255,0.06)"}`,
                                         }}>
                                         <span style={{ fontSize: 20 }}>{dt.icon}</span>
-                                        <span style={{ fontSize: 10, color: deviceType === dt.id ? "#00ffb4" : "rgba(255,255,255,0.3)" }}>
+                                        <span style={{ fontSize: 10, color: deviceType === dt.id ? "#10B981" : "rgba(255,255,255,0.3)" }}>
                                             {dt.label}
                                         </span>
                                     </button>
@@ -88,10 +88,10 @@ export function QRProvisioning({ sessionId, onGeneratePeer, qrData, loading }) {
                             style={{
                                 background: loading
                                     ? "rgba(255,170,0,0.12)"
-                                    : "linear-gradient(135deg, rgba(0,255,180,0.15), rgba(0,170,255,0.15))",
-                                border: `1.5px solid ${loading ? "#ffaa00" : "rgba(0,255,180,0.3)"}`,
-                                color: loading ? "#ffaa00" : "#00ffb4",
-                                boxShadow: loading ? "none" : "0 4px 20px rgba(0,255,180,0.1)",
+                                    : "linear-gradient(135deg, rgba(16,185,129,0.15), rgba(0,170,255,0.15))",
+                                border: `1.5px solid ${loading ? "#ffaa00" : "rgba(16,185,129,0.3)"}`,
+                                color: loading ? "#ffaa00" : "#10B981",
+                                boxShadow: loading ? "none" : "0 4px 20px rgba(16,185,129,0.1)",
                             }}>
                             {loading ? (
                                 <span className="flex items-center justify-center gap-2">
@@ -128,9 +128,9 @@ export function QRProvisioning({ sessionId, onGeneratePeer, qrData, loading }) {
                             <button onClick={handleCopy}
                                 className="flex-1 py-2.5 rounded-lg font-mono text-xs transition-all duration-200"
                                 style={{
-                                    background: copied ? "rgba(0,255,180,0.12)" : "rgba(255,255,255,0.04)",
-                                    border: `1px solid ${copied ? "rgba(0,255,180,0.3)" : "rgba(255,255,255,0.08)"}`,
-                                    color: copied ? "#00ffb4" : "rgba(255,255,255,0.5)",
+                                    background: copied ? "rgba(16,185,129,0.12)" : "rgba(255,255,255,0.04)",
+                                    border: `1px solid ${copied ? "rgba(16,185,129,0.3)" : "rgba(255,255,255,0.08)"}`,
+                                    color: copied ? "#10B981" : "rgba(255,255,255,0.5)",
                                 }}>
                                 {copied ? "✓ Copied!" : "📋 Copy Config"}
                             </button>
@@ -172,15 +172,15 @@ export function QRProvisioning({ sessionId, onGeneratePeer, qrData, loading }) {
             <div className="px-5 pb-4">
                 <div className="p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
                     <div className="flex items-center justify-center gap-2 flex-wrap" style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>
-                        <span style={{ color: "#00ffb4" }}>Scan QR</span>
+                        <span style={{ color: "#10B981" }}>Scan QR</span>
                         <span>→</span>
                         <span>Phone Connects</span>
                         <span>→</span>
-                        <span style={{ color: "#00ccff" }}>Vultr Relay</span>
+                        <span style={{ color: "#6366F1" }}>Vultr Relay</span>
                         <span>→</span>
                         <span style={{ color: "#8b5cf6" }}>Hetzner Exit</span>
                         <span>→</span>
-                        <span style={{ color: "#00ffb4" }}>🌐 Internet</span>
+                        <span style={{ color: "#10B981" }}>🌐 Internet</span>
                     </div>
                 </div>
             </div>
@@ -201,7 +201,7 @@ export function DeviceList({ devices, onRevoke }) {
                     No devices connected
                 </div>
                 <div className="flex items-center gap-1.5 justify-center">
-                    <div className="w-1 h-1 rounded-full" style={{ background: "#00ffb4" }} />
+                    <div className="w-1 h-1 rounded-full" style={{ background: "#10B981" }} />
                     <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)" }}>
                         Device list is temporary — not stored
                     </span>
@@ -219,7 +219,7 @@ export function DeviceList({ devices, onRevoke }) {
                     <span style={{ fontSize: 14 }}>📡</span>
                     <span className="font-semibold text-white text-sm">Connected Devices</span>
                 </div>
-                <span className="font-mono px-2 py-0.5 rounded" style={{ fontSize: 9, background: "rgba(0,255,180,0.06)", color: "#00ffb4", border: "1px solid rgba(0,255,180,0.15)" }}>
+                <span className="font-mono px-2 py-0.5 rounded" style={{ fontSize: 9, background: "rgba(16,185,129,0.06)", color: "#10B981", border: "1px solid rgba(16,185,129,0.15)" }}>
                     {devices.length} active
                 </span>
             </div>

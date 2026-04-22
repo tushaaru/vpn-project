@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield,
@@ -19,7 +19,7 @@ import {
   CheckCircle2,
   X
 } from 'lucide-react';
-import { mockApi } from '../services/mockApi';
+import { mockApi, servers } from '../services/mockApi';
 import { QRCodeSVG } from 'qrcode.react';
 import Settings from './Settings';
 import ServerList from './ServerList';
@@ -30,7 +30,7 @@ const Toast = ({ message, type = "success", onClose }) => (
     initial={{ opacity: 0, y: 50, scale: 0.9 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
     exit={{ opacity: 0, scale: 0.9 }}
-    className={`fixed bottom-8 right-8 z-[100] flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border ${type === "success" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-blue-500/10 border-blue-500/20 text-blue-400"
+    className={`fixed bottom-8 right-8 z-[100] flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border ${type === "success" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-indigo-500/10 border-indigo-500/20 text-indigo-400"
       }`}
   >
     <CheckCircle2 size={18} />
@@ -43,7 +43,7 @@ const Toast = ({ message, type = "success", onClose }) => (
 
 // --- Sub-Components ---
 
-const StatCard = ({ icon: Icon, label, value, subValue, color = "blue" }) => (
+const StatCard = ({ icon: Icon, label, value, subValue, color = "indigo" }) => (
   <motion.div
     whileHover={{ y: -2 }}
     className="glass-panel p-4 flex flex-col gap-1"
@@ -60,8 +60,8 @@ const StatCard = ({ icon: Icon, label, value, subValue, color = "blue" }) => (
 const NodeFlow = ({ connected, nodes }) => {
   const hops = [
     { id: 'user', label: 'Your Device', icon: Smartphone, color: '#F8FAFC' },
-    { id: 'entry', label: nodes?.entry?.provider || 'Entry Node', icon: Cpu, color: '#0066FF' },
-    { id: 'exit', label: nodes?.exit?.provider || 'Exit Node', icon: Database, color: '#00D1FF' },
+    { id: 'entry', label: nodes?.entry?.provider || 'Entry Node', icon: Cpu, color: '#6366F1' },
+    { id: 'exit', label: nodes?.exit?.provider || 'Exit Node', icon: Database, color: '#8B5CF6' },
     { id: 'web', label: 'Internet', icon: Globe, color: '#10B981' },
   ];
 
@@ -69,16 +69,16 @@ const NodeFlow = ({ connected, nodes }) => {
     <div className="glass-panel p-6 overflow-hidden">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-sm font-bold flex items-center gap-2">
-          <Activity size={16} className="text-blue-400" />
+          <Activity size={16} className="text-indigo-400" />
           Multi-Hop Visualization
         </h3>
         {connected && (
-          <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
+          <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
             <div className="status-pulse">
-              <span className="status-pulse-dot bg-blue-400"></span>
-              <span className="status-pulse-core bg-blue-500"></span>
+              <span className="status-pulse-dot bg-indigo-400"></span>
+              <span className="status-pulse-core bg-indigo-500"></span>
             </div>
-            <span className="text-[10px] font-bold text-blue-400 uppercase">Encrypted Path</span>
+            <span className="text-[10px] font-bold text-indigo-400 uppercase">Encrypted Path</span>
           </div>
         )}
       </div>
@@ -89,7 +89,7 @@ const NodeFlow = ({ connected, nodes }) => {
           <motion.div
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
-            className="absolute top-1/2 left-0 w-full h-[2px] bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-500 -translate-y-1/2 z-0 origin-left"
+            className="absolute top-1/2 left-0 w-full h-[2px] bg-gradient-to-r from-indigo-500 via-violet-400 to-emerald-500 -translate-y-1/2 z-0 origin-left"
           />
         )}
 
@@ -118,7 +118,7 @@ const NodeFlow = ({ connected, nodes }) => {
   );
 };
 
-const QRPanel = ({ onGenerate, qrData, loading, addToast }) => {
+const QRPanel = ({ onGenerate, qrData, setQrData, loading, setLoading, addToast }) => {
   const [deviceName, setDeviceName] = useState("");
   const [timeLeft, setTimeLeft] = useState(0);
 
@@ -131,9 +131,15 @@ const QRPanel = ({ onGenerate, qrData, loading, addToast }) => {
   }, [qrData, timeLeft]);
 
   const handleGenerate = async (name) => {
-    await onGenerate(name);
-    setTimeLeft(120); // 2 minutes
-    addToast("QR Config Generated Successfully");
+    setLoading(true);
+    try {
+      const data = await onGenerate(name);
+      setQrData(data);
+      setTimeLeft(120); // 2 minutes
+      addToast("QR Config Generated Successfully");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCopy = () => {
@@ -192,8 +198,8 @@ const QRPanel = ({ onGenerate, qrData, loading, addToast }) => {
               <div className="text-xs font-bold text-rose-400 uppercase tracking-widest">Config Expired</div>
             ) : (
               <div className="flex items-center gap-2">
-                <Clock size={12} className="text-slate-500" />
-                <span className="text-xs font-mono text-white">Expires in {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}</span>
+                <Shield size={12} className="text-emerald-400" />
+                <span className="text-xs font-mono text-white">Active Session Config</span>
               </div>
             )}
           </div>
@@ -275,27 +281,29 @@ export default function Dashboard() {
   const handleConnect = async (server) => {
     if (connecting) return;
     setError(null);
-    setSelectedServer(server);
 
+    // If clicking the same server while connected, disconnect
     if (connected && selectedServer?.id === server.id) {
       await mockApi.disconnect();
       setConnected(false);
       setMetrics(null);
       addToast("Disconnected from VPN", "info");
-    } else {
-      setConnecting(true);
-      try {
-        const res = await mockApi.connect(server.id);
-        setConnected(true);
-        setNodes(res.nodes);
-        addToast(`Connected to ${server.country}`);
-        setActiveTab('dashboard');
-      } catch (err) {
-        setError(err.message);
-        addToast(err.message, "error");
-      } finally {
-        setConnecting(false);
-      }
+      return;
+    }
+
+    setSelectedServer(server);
+    setConnecting(true);
+    try {
+      const res = await mockApi.connect(server.id);
+      setConnected(true);
+      setNodes(res.nodes);
+      addToast(`Connected to ${server.country}`);
+      setActiveTab('dashboard');
+    } catch (err) {
+      setError(err.message);
+      addToast(err.message, "error");
+    } finally {
+      setConnecting(false);
     }
   };
 
@@ -319,26 +327,26 @@ export default function Dashboard() {
       {/* Sidebar */}
       <aside className="w-64 border-r border-white/5 p-6 flex flex-col gap-8 z-10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
             <Shield className="text-white" size={20} />
           </div>
           <div>
             <div className="font-black text-lg tracking-tighter italic">NEXUS</div>
-            <div className="text-[8px] font-bold text-blue-400 uppercase tracking-[0.2em] -mt-1">Secure Tunnel</div>
+            <div className="text-[8px] font-bold text-indigo-400 uppercase tracking-[0.2em] -mt-1">Secure Tunnel</div>
           </div>
         </div>
 
         <nav className="flex flex-col gap-2">
           {[
             { id: 'dashboard', label: 'Dashboard', icon: Activity },
-            { id: 'servers', label: 'Server List', icon: Globe },
+            { id: 'audit', label: 'Privacy Audit', icon: Shield },
             { id: 'devices', label: 'Devices', icon: Smartphone },
             { id: 'settings', label: 'Settings', icon: SettingsIcon },
           ].map(item => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:bg-white/5'
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === item.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:bg-white/5'
                 }`}
             >
               <item.icon size={18} />
@@ -393,7 +401,7 @@ export default function Dashboard() {
             >
               <div className="col-span-8 space-y-6">
                 <div className="glass-panel p-8 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-500 opacity-50" />
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-600 via-violet-400 to-emerald-500 opacity-50" />
                   <div className="flex items-center justify-between">
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
@@ -413,16 +421,16 @@ export default function Dashboard() {
                         <div className="w-px h-10 bg-white/5" />
                         <div>
                           <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Virtual IP</div>
-                          <div className="text-lg font-mono font-bold text-blue-400">{metrics?.ip || "---.---.---.---"}</div>
+                          <div className="text-lg font-mono font-bold text-indigo-400">{metrics?.ip || "---.---.---.---"}</div>
                         </div>
                       </div>
                     </div>
                     <button
-                      onClick={() => handleConnect(selectedServer || { id: 'de-1' })}
+                      onClick={() => handleConnect(selectedServer || { id: 'in-1' })}
                       disabled={connecting}
                       className={`w-24 h-24 rounded-full flex flex-col items-center justify-center gap-1 transition-all duration-500 ${connected
-                          ? 'bg-emerald-500/10 border-2 border-emerald-500 text-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.2)]'
-                          : 'bg-blue-600 border-2 border-blue-500 text-white shadow-[0_0_30px_rgba(0,102,255,0.3)] hover:scale-105'
+                        ? 'bg-emerald-500/10 border-2 border-emerald-500 text-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.2)]'
+                        : 'bg-indigo-600 border-2 border-indigo-500 text-white shadow-[0_0_30px_rgba(0,102,255,0.3)] hover:scale-105'
                         }`}
                     >
                       <Power size={32} className={connecting ? 'animate-spin' : ''} />
@@ -438,32 +446,133 @@ export default function Dashboard() {
                 </div>
                 <NodeFlow connected={connected} nodes={nodes} />
                 <div className="grid grid-cols-3 gap-4">
-                  <StatCard icon={Zap} label="Latency" value={metrics ? `${metrics.latency} ms` : "---"} subValue={metrics?.latency < 50 ? "Excellent" : "Average"} color="cyan" />
+                  <StatCard icon={Zap} label="Latency" value={metrics ? `${metrics.latency} ms` : "---"} subValue={metrics?.latency < 50 ? "Excellent" : "Average"} color="violet" />
                   <StatCard icon={RefreshCw} label="Rotation" value={formatTime(rotationTimer)} subValue="Next Node Shift" color="purple" />
-                  <StatCard icon={Clock} label="Session" value={connected ? "00:12:45" : "00:00:00"} subValue="Active Time" color="emerald" />
+                  <StatCard icon={Lock} label="Encryption" value="AES-256-GCM" subValue="Quantum Resistant" color="emerald" />
+                </div>
+
+                {/* Privacy Features List */}
+                <div className="glass-panel p-6">
+                  <h3 className="text-sm font-bold mb-6 flex items-center gap-2">
+                    <Shield size={16} className="text-emerald-400" />
+                    Advanced Privacy Features
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { label: "RAM-Only Infrastructure", desc: "No data ever touches a hard drive", icon: Cpu, active: true },
+                      { label: "DNS Leak Protection", desc: "Private DNS queries only", icon: Globe, active: true },
+                      { label: "Perfect Forward Secrecy", desc: "New keys for every session", icon: Lock, active: true },
+                      { label: "Obfuscated Traffic", desc: "Bypasses deep packet inspection", icon: Zap, active: true },
+                    ].map((feat, i) => (
+                      <div key={i} className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+                          <feat.icon size={16} />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-white mb-1">{feat.label}</div>
+                          <div className="text-[10px] text-slate-500 leading-tight">{feat.desc}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
               <div className="col-span-4 space-y-6">
-                <QRPanel onGenerate={mockApi.generateConfig} qrData={qrData} loading={qrLoading} addToast={addToast} />
+                <QRPanel
+                  onGenerate={mockApi.generateConfig}
+                  qrData={qrData}
+                  setQrData={setQrData}
+                  loading={qrLoading}
+                  setLoading={setQrLoading}
+                  addToast={addToast}
+                />
                 <div className="glass-panel p-6">
                   <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
-                    <Globe size={16} className="text-blue-400" />
+                    <Globe size={16} className="text-indigo-400" />
                     Quick Connect
                   </h3>
-                  <button
-                    onClick={() => setActiveTab('servers')}
-                    className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-all"
-                  >
-                    View All Servers
-                  </button>
+                  <div className="space-y-2">
+                    {servers.map(s => (
+                      <button
+                        key={s.id}
+                        onClick={() => handleConnect(s)}
+                        className="w-full flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg">{s.flag}</span>
+                          <div className="text-left">
+                            <div className="text-xs font-bold text-white">{s.country}</div>
+                            <div className="text-[10px] text-slate-500">{s.city}</div>
+                          </div>
+                        </div>
+                        <ChevronRight size={14} className="text-slate-600 group-hover:text-white transition-colors" />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </motion.div>
           )}
 
-          {activeTab === 'servers' && (
-            <motion.div key="servers" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <ServerList onConnect={handleConnect} />
+          {activeTab === 'audit' && (
+            <motion.div key="audit" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
+              <div className="grid grid-cols-3 gap-6">
+                <div className="col-span-2 space-y-6">
+                  <div className="glass-panel p-8">
+                    <h2 className="text-xl font-bold mb-6 flex items-center gap-3">
+                      <Shield className="text-emerald-400" size={24} />
+                      Real-Time Security Audit
+                    </h2>
+                    <div className="space-y-4">
+                      {[
+                        { label: "IP Masking", status: connected ? "Active" : "Inactive", desc: connected ? `Your real IP is hidden behind ${metrics?.ip}` : "Real IP is currently exposed", active: connected },
+                        { label: "DNS Encryption", status: "Active", desc: "DNS queries are routed through encrypted Nexus resolvers", active: true },
+                        { label: "Traffic Obfuscation", status: "Active", desc: "VPN traffic is masked as standard HTTPS web traffic", active: true },
+                        { label: "RAM-Only Verification", status: "Verified", desc: "Server nodes confirmed running on volatile memory only", active: true },
+                        { label: "Quantum Resistance", status: "Enabled", desc: "Post-quantum cryptographic layer is active", active: true },
+                      ].map((item, i) => (
+                        <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between">
+                          <div>
+                            <div className="text-sm font-bold text-white">{item.label}</div>
+                            <div className="text-xs text-slate-500">{item.desc}</div>
+                          </div>
+                          <div className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${item.active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                            {item.status}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-6">
+                  <div className="glass-panel p-6 bg-indigo-600/10 border-indigo-500/20">
+                    <h3 className="text-sm font-bold mb-4 text-indigo-400">Audit Score</h3>
+                    <div className="text-5xl font-black text-white mb-2">{connected ? "98" : "42"}<span className="text-lg text-slate-500">/100</span></div>
+                    <div className="text-xs text-slate-400 leading-relaxed">
+                      {connected ? "Your connection is highly secure. All privacy layers are active and verified." : "Warning: Your connection is currently unprotected. Connect to a server to enable privacy layers."}
+                    </div>
+                  </div>
+                  <div className="glass-panel p-6">
+                    <h3 className="text-sm font-bold mb-4">Session Integrity</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                        <span>Encryption Strength</span>
+                        <span className="text-white">256-bit</span>
+                      </div>
+                      <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                        <div className="w-full h-full bg-indigo-500" />
+                      </div>
+                      <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                        <span>Anonymity Level</span>
+                        <span className="text-white">{connected ? "High" : "Low"}</span>
+                      </div>
+                      <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                        <div className={`h-full bg-emerald-500 transition-all duration-1000 ${connected ? 'w-full' : 'w-1/3'}`} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           )}
 

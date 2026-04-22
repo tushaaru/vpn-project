@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from "react";
 /* ── Ephemeral Node Visualization ── */
 export function NodeVisualization({ nodes, connected, onRotate }) {
     const [animating, setAnimating] = useState(false);
-    const [prevNodes, setPrevNodes] = useState(null);
     const canvasRef = useRef(null);
 
     useEffect(() => {
@@ -26,7 +25,7 @@ export function NodeVisualization({ nodes, connected, onRotate }) {
             ctx.beginPath();
             ctx.moveTo(startX, midY);
             ctx.bezierCurveTo(entryX, midY - 30, exitX, midY - 30, endX, midY);
-            ctx.strokeStyle = connected ? "rgba(0,255,180,0.08)" : "rgba(255,255,255,0.04)";
+            ctx.strokeStyle = connected ? "rgba(16,185,129,0.08)" : "rgba(255,255,255,0.04)";
             ctx.lineWidth = 2;
             ctx.stroke();
 
@@ -41,23 +40,23 @@ export function NodeVisualization({ nodes, connected, onRotate }) {
 
                     ctx.beginPath();
                     ctx.arc(x, y, 2, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(0,255,180,${alpha * 0.8})`;
+                    ctx.fillStyle = `rgba(16,185,129,${alpha * 0.8})`;
                     ctx.fill();
 
                     // Trail
                     ctx.beginPath();
                     ctx.arc(x, y, 5, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(0,255,180,${alpha * 0.15})`;
+                    ctx.fillStyle = `rgba(16,185,129,${alpha * 0.15})`;
                     ctx.fill();
                 }
             }
 
             // Nodes
             const nodePositions = [
-                { x: startX, y: midY, label: "You", color: connected ? "#00ffb4" : "rgba(255,255,255,0.2)" },
-                { x: entryX, y: midY - 15, label: "Entry", color: connected ? "#00ccff" : "rgba(255,255,255,0.15)" },
+                { x: startX, y: midY, label: "You", color: connected ? "#10B981" : "rgba(255,255,255,0.2)" },
+                { x: entryX, y: midY - 15, label: "Entry", color: connected ? "#6366F1" : "rgba(255,255,255,0.15)" },
                 { x: exitX, y: midY - 15, label: "Exit", color: connected ? "#8b5cf6" : "rgba(255,255,255,0.15)" },
-                { x: endX, y: midY, label: "Internet", color: connected ? "#00ffb4" : "rgba(255,255,255,0.2)" },
+                { x: endX, y: midY, label: "Internet", color: connected ? "#10B981" : "rgba(255,255,255,0.2)" },
             ];
 
             nodePositions.forEach((node, i) => {
@@ -99,11 +98,9 @@ export function NodeVisualization({ nodes, connected, onRotate }) {
 
     const handleRotate = () => {
         setAnimating(true);
-        setPrevNodes(nodes);
         onRotate?.();
         setTimeout(() => {
             setAnimating(false);
-            setPrevNodes(null);
         }, 1200);
     };
 
@@ -139,7 +136,7 @@ export function NodeVisualization({ nodes, connected, onRotate }) {
                     <div className={`p-3 rounded-xl transition-all duration-500 ${animating ? "opacity-0" : "opacity-100"}`}
                         style={{ background: "rgba(0,204,255,0.04)", border: "1px solid rgba(0,204,255,0.12)", animation: animating ? "nodeExit 0.6s ease forwards" : "nodeEnter 0.5s ease forwards" }}>
                         <div className="flex items-center gap-2 mb-1">
-                            <div className="w-2 h-2 rounded-full" style={{ background: "#00ccff", boxShadow: "0 0 4px #00ccff" }} />
+                            <div className="w-2 h-2 rounded-full" style={{ background: "#6366F1", boxShadow: "0 0 4px #6366F1" }} />
                             <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>ENTRY NODE</span>
                         </div>
                         <div className="font-mono font-semibold text-white" style={{ fontSize: 11 }}>
@@ -173,7 +170,6 @@ export function AutoRotation({ timeToRotation, autoRotate, onToggle }) {
     const [remaining, setRemaining] = useState(timeToRotation || 0);
 
     useEffect(() => {
-        setRemaining(timeToRotation || 0);
         const interval = setInterval(() => {
             setRemaining(r => Math.max(0, r - 1000));
         }, 1000);
@@ -194,14 +190,14 @@ export function AutoRotation({ timeToRotation, autoRotate, onToggle }) {
                 <button onClick={onToggle}
                     className="relative w-10 h-5 rounded-full transition-all duration-300"
                     style={{
-                        background: autoRotate ? "rgba(0,255,180,0.25)" : "rgba(255,255,255,0.1)",
-                        border: `1px solid ${autoRotate ? "rgba(0,255,180,0.4)" : "rgba(255,255,255,0.15)"}`,
+                        background: autoRotate ? "rgba(16,185,129,0.25)" : "rgba(255,255,255,0.1)",
+                        border: `1px solid ${autoRotate ? "rgba(16,185,129,0.4)" : "rgba(255,255,255,0.15)"}`,
                     }}>
                     <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-300"
                         style={{
                             left: autoRotate ? "calc(100% - 18px)" : "2px",
-                            background: autoRotate ? "#00ffb4" : "rgba(255,255,255,0.4)",
-                            boxShadow: autoRotate ? "0 0 8px rgba(0,255,180,0.4)" : "none",
+                            background: autoRotate ? "#10B981" : "rgba(255,255,255,0.4)",
+                            boxShadow: autoRotate ? "0 0 8px rgba(16,185,129,0.4)" : "none",
                         }} />
                 </button>
             </div>
@@ -211,7 +207,7 @@ export function AutoRotation({ timeToRotation, autoRotate, onToggle }) {
                     <span className="font-mono" style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>Next rotation in:</span>
                     <span className="font-mono font-bold" style={{
                         fontSize: 16,
-                        color: autoRotate ? "#00ffb4" : "rgba(255,255,255,0.2)",
+                        color: autoRotate ? "#10B981" : "rgba(255,255,255,0.2)",
                     }}>
                         {autoRotate ? `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}` : "OFF"}
                     </span>
@@ -223,13 +219,13 @@ export function AutoRotation({ timeToRotation, autoRotate, onToggle }) {
                     <div className="h-full rounded-full transition-all duration-1000"
                         style={{
                             width: `${(remaining / (15 * 60 * 1000)) * 100}%`,
-                            background: "linear-gradient(90deg, #00ffb4, #00ccff)",
+                            background: "linear-gradient(90deg, #10B981, #6366F1)",
                         }} />
                 </div>
             )}
 
             <div className="mt-2 flex items-center gap-1.5">
-                <div className="w-1 h-1 rounded-full" style={{ background: autoRotate ? "#00ffb4" : "rgba(255,255,255,0.15)" }} />
+                <div className="w-1 h-1 rounded-full" style={{ background: autoRotate ? "#10B981" : "rgba(255,255,255,0.15)" }} />
                 <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)" }}>
                     {autoRotate ? "Nodes automatically rotate for security" : "Auto-rotation paused"}
                 </span>
